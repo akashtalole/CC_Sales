@@ -1,0 +1,123 @@
+{
+  "schema_version": "1.0",
+  "agent": {
+    "id": "customer-success-agent",
+    "name": "Customer Success Agent",
+    "description": "Provides reference customer matching, case study generation, success story retrieval, and onboarding brief creation. Bridges presales and post-sales by surfacing relevant customer evidence and preparing handoff documentation.",
+    "version": "1.0.0",
+    "url": "https://agents.your-company.com/customer-success",
+    "model": "claude-sonnet-4-6",
+    "authentication": {
+      "schemes": ["bearer"],
+      "token_endpoint": "https://auth.your-company.com/token"
+    },
+    "capabilities": {
+      "streaming": false,
+      "push_notifications": false,
+      "state_transition_history": false,
+      "multi_turn": false
+    }
+  },
+  "skills": [
+    {
+      "id": "reference-match",
+      "name": "Reference Customer Match",
+      "description": "Finds the best-fit reference customers for a prospect based on industry, use case, company size, and tech stack similarity.",
+      "input_schema": {
+        "type": "object",
+        "required": ["prospect_profile"],
+        "properties": {
+          "prospect_profile": {
+            "type": "object",
+            "properties": {
+              "industry": { "type": "string" },
+              "company_size": { "type": "string", "enum": ["smb", "mid-market", "enterprise"] },
+              "use_case": { "type": "string" },
+              "tech_stack": { "type": "array", "items": { "type": "string" } },
+              "pain_points": { "type": "array", "items": { "type": "string" } }
+            }
+          },
+          "reference_type": { "type": "string", "enum": ["call", "case-study", "written-quote", "logo-only"], "default": "case-study" },
+          "max_results": { "type": "integer", "default": 3 }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "matches": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "customer_id": { "type": "string" },
+                "anonymized_name": { "type": "string" },
+                "industry": { "type": "string" },
+                "similarity_score": { "type": "number" },
+                "use_case_summary": { "type": "string" },
+                "outcome_metrics": { "type": "array" },
+                "reference_available": { "type": "boolean" },
+                "case_study_url": { "type": "string" }
+              }
+            }
+          },
+          "best_match": { "type": "string" }
+        }
+      },
+      "tags": ["reference", "case-study", "social-proof"]
+    },
+    {
+      "id": "case-study-generation",
+      "name": "Case Study Generation",
+      "description": "Generates a deal-specific case study excerpt from the customer success knowledge base, tailored to a prospect's situation.",
+      "input_schema": {
+        "type": "object",
+        "required": ["customer_id", "prospect_context"],
+        "properties": {
+          "customer_id": { "type": "string" },
+          "prospect_context": { "type": "string" },
+          "format": { "type": "string", "enum": ["one-paragraph", "full-page", "bullet-points"], "default": "one-paragraph" },
+          "anonymize": { "type": "boolean", "default": false }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "case_study_text": { "type": "string" },
+          "metrics_highlighted": { "type": "array" },
+          "approved_for_external_use": { "type": "boolean" }
+        }
+      },
+      "tags": ["case-study", "content", "social-proof"]
+    },
+    {
+      "id": "onboarding-brief",
+      "name": "Onboarding Brief",
+      "description": "Generates a customer handoff brief for the delivery team after a deal is closed. Synthesizes the full deal history, technical requirements, key contacts, and agreed scope.",
+      "input_schema": {
+        "type": "object",
+        "required": ["crm_deal_id"],
+        "properties": {
+          "crm_deal_id": { "type": "string" },
+          "delivery_team_lead": { "type": "string" },
+          "kickoff_date": { "type": "string", "format": "date" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "brief_url": { "type": "string" },
+          "sections_included": { "type": "array" },
+          "key_risks_flagged": { "type": "integer" },
+          "open_items_for_delivery": { "type": "array" }
+        }
+      },
+      "tags": ["onboarding", "handoff", "post-sales"]
+    }
+  ],
+  "invocation_contexts": [
+    "When call-prep needs reference customers or case studies for a discovery call",
+    "When create-an-asset needs a 'Why Us' section with relevant proof points",
+    "When a deal closes (Closed Won) and a delivery handoff brief is needed",
+    "When a prospect specifically asks for references or case studies"
+  ]
+}

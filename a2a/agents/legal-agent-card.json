@@ -1,0 +1,117 @@
+{
+  "schema_version": "1.0",
+  "agent": {
+    "id": "legal-agent",
+    "name": "Legal & Compliance Agent",
+    "description": "Reviews contracts, MSAs, NDAs, and SOWs for risk. Flags non-standard clauses, liability exposure, IP concerns, and compliance requirements. Drafts redlines and provides fallback positions for negotiation.",
+    "version": "1.0.0",
+    "url": "https://agents.your-company.com/legal",
+    "model": "claude-opus-4-7",
+    "authentication": {
+      "schemes": ["bearer"],
+      "token_endpoint": "https://auth.your-company.com/token"
+    },
+    "capabilities": {
+      "streaming": true,
+      "push_notifications": false,
+      "state_transition_history": true,
+      "multi_turn": true
+    }
+  },
+  "skills": [
+    {
+      "id": "contract-review",
+      "name": "Contract Review",
+      "description": "Reviews a contract document and produces a structured risk summary with flagged clauses, recommended redlines, and fallback positions.",
+      "input_schema": {
+        "type": "object",
+        "required": ["document_url"],
+        "properties": {
+          "document_url": { "type": "string", "description": "URL to contract document (PDF or Google Doc)" },
+          "contract_type": { "type": "string", "enum": ["msa", "nda", "sow", "order-form", "dpa", "other"] },
+          "deal_value": { "type": "number" },
+          "customer_jurisdiction": { "type": "string" },
+          "urgency": { "type": "string", "enum": ["standard", "urgent", "critical"], "default": "standard" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "risk_level": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+          "flagged_clauses": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "clause": { "type": "string" },
+                "risk": { "type": "string" },
+                "recommended_redline": { "type": "string" },
+                "fallback_position": { "type": "string" }
+              }
+            }
+          },
+          "summary": { "type": "string" },
+          "review_document_url": { "type": "string" },
+          "estimated_review_time_hours": { "type": "number" }
+        }
+      },
+      "tags": ["contract", "legal", "review", "compliance"]
+    },
+    {
+      "id": "nda-generation",
+      "name": "NDA Generation",
+      "description": "Drafts a mutual or one-way NDA based on deal parameters.",
+      "input_schema": {
+        "type": "object",
+        "required": ["party_name", "nda_type"],
+        "properties": {
+          "party_name": { "type": "string" },
+          "nda_type": { "type": "string", "enum": ["mutual", "one-way"] },
+          "jurisdiction": { "type": "string" },
+          "term_years": { "type": "integer", "default": 3 }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "document_url": { "type": "string" },
+          "status": { "type": "string" }
+        }
+      },
+      "tags": ["nda", "legal", "contract-generation"]
+    },
+    {
+      "id": "compliance-check",
+      "name": "Compliance Check",
+      "description": "Checks a proposed deal or data processing arrangement against known compliance requirements (SOC2, HIPAA, GDPR, FedRAMP).",
+      "input_schema": {
+        "type": "object",
+        "required": ["compliance_frameworks"],
+        "properties": {
+          "compliance_frameworks": {
+            "type": "array",
+            "items": { "type": "string", "enum": ["SOC2", "HIPAA", "GDPR", "PCI-DSS", "FedRAMP", "ISO27001"] }
+          },
+          "data_types": { "type": "array", "items": { "type": "string" } },
+          "deployment_region": { "type": "string" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "compliant": { "type": "boolean" },
+          "gaps": { "type": "array" },
+          "requirements": { "type": "array" },
+          "remediation_steps": { "type": "array" }
+        }
+      },
+      "tags": ["compliance", "security", "regulatory"]
+    }
+  ],
+  "invocation_contexts": [
+    "When a prospect requests contract review during proposal stage",
+    "When /call-summary detects legal or compliance requirements mentioned",
+    "When create-an-asset generates a proposal containing data processing terms",
+    "When a deal moves to Negotiation stage"
+  ]
+}

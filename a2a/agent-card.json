@@ -1,0 +1,324 @@
+{
+  "schema_version": "1.0",
+  "agent": {
+    "id": "presales-agent",
+    "name": "CC Sales Presales Agent",
+    "description": "AI-powered presales agent for tech services teams. Handles end-to-end presales workflows including account research, outreach drafting, call preparation, proposal generation, pipeline analysis, and competitive intelligence. Can delegate specialized tasks to other org agents via A2A protocol.",
+    "version": "1.0.0",
+    "provider": {
+      "organization": "CC Sales",
+      "contact": "revops@your-company.com",
+      "url": "https://github.com/akashtalole/CC_Sales"
+    },
+    "model": "claude-sonnet-4-6",
+    "url": "https://agents.your-company.com/presales",
+    "authentication": {
+      "schemes": ["bearer"],
+      "token_endpoint": "https://auth.your-company.com/token"
+    },
+    "capabilities": {
+      "streaming": true,
+      "push_notifications": true,
+      "state_transition_history": true,
+      "multi_turn": true
+    }
+  },
+  "skills": [
+    {
+      "id": "account-research",
+      "name": "Account Research",
+      "description": "Researches a target company and produces a structured intelligence brief. Covers funding, tech stack, headcount trends, recent news, hiring signals, and pain point hypotheses tailored to a tech services pitch.",
+      "trigger": "automatic",
+      "trigger_events": ["crm.company.created", "crm.deal.stage_changed:research"],
+      "input_schema": {
+        "type": "object",
+        "required": ["company_domain"],
+        "properties": {
+          "company_domain": { "type": "string", "description": "Company website domain, e.g. acme.com" },
+          "company_name": { "type": "string" },
+          "icp_focus": { "type": "string", "description": "Specific ICP angle or service to pitch" },
+          "depth": { "type": "string", "enum": ["quick", "standard", "deep"], "default": "standard" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "notion_brief_url": { "type": "string" },
+          "crm_research_score": { "type": "number" },
+          "summary": { "type": "string" },
+          "tech_stack": { "type": "array", "items": { "type": "string" } },
+          "pain_hypotheses": { "type": "array", "items": { "type": "string" } },
+          "confidence": { "type": "string", "enum": ["high", "medium", "low"] }
+        }
+      },
+      "delegatable_to": ["technical-architecture-agent"],
+      "tags": ["research", "prospecting", "enrichment"]
+    },
+    {
+      "id": "call-prep",
+      "name": "Call Preparation",
+      "description": "Generates a structured pre-call brief 2 hours before a scheduled meeting. Includes account context, prior interactions, MEDDIC pre-population, discovery questions, competitive landscape, and talk track bullets.",
+      "trigger": "automatic",
+      "trigger_events": ["calendar.event.created", "calendar.event.updated"],
+      "trigger_conditions": {
+        "has_external_attendees": true,
+        "attendee_domain_in_crm": true,
+        "lead_time_hours": 2
+      },
+      "input_schema": {
+        "type": "object",
+        "required": ["calendar_event_id"],
+        "properties": {
+          "calendar_event_id": { "type": "string" },
+          "call_type": { "type": "string", "enum": ["discovery", "technical", "demo", "proposal", "negotiation", "close"] },
+          "attendees": { "type": "array", "items": { "type": "object" } },
+          "crm_deal_id": { "type": "string" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "notion_brief_url": { "type": "string" },
+          "slack_message_id": { "type": "string" },
+          "discovery_questions": { "type": "array", "items": { "type": "string" } },
+          "meddic_current": { "type": "object" },
+          "competitive_intel": { "type": "string" }
+        }
+      },
+      "delegatable_to": ["competitive-intelligence-agent", "customer-success-agent"],
+      "tags": ["call-prep", "discovery", "meddic"]
+    },
+    {
+      "id": "call-summary",
+      "name": "Call Summary",
+      "description": "Processes a call transcript to extract MEDDIC fields, action items, deal health assessment, and drafts a follow-up email. Updates CRM automatically.",
+      "trigger": "manual",
+      "slash_command": "/call-summary",
+      "input_schema": {
+        "type": "object",
+        "required": ["transcript_source"],
+        "properties": {
+          "transcript_source": { "type": "string", "description": "Fireflies/Gong URL or raw transcript text" },
+          "crm_deal_id": { "type": "string" },
+          "call_type": { "type": "string", "enum": ["discovery", "technical", "demo", "proposal", "negotiation", "close", "loss"] }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "meddic": { "type": "object" },
+          "meddic_score": { "type": "number", "minimum": 0, "maximum": 100 },
+          "action_items": { "type": "array" },
+          "follow_up_email_draft": { "type": "string" },
+          "deal_health": { "type": "string", "enum": ["green", "yellow", "red"] },
+          "notion_summary_url": { "type": "string" }
+        }
+      },
+      "delegatable_to": ["legal-agent", "pricing-agent"],
+      "tags": ["post-call", "meddic", "crm-update"]
+    },
+    {
+      "id": "draft-outreach",
+      "name": "Draft Outreach",
+      "description": "Researches a prospect and drafts personalized outreach — cold email sequences, LinkedIn messages, or re-engagement emails. Research is conducted before drafting.",
+      "trigger": "automatic",
+      "trigger_events": ["crm.deal.stage_changed:outreach"],
+      "trigger_conditions": {
+        "research_brief_exists": true
+      },
+      "input_schema": {
+        "type": "object",
+        "required": ["contact_id", "sequence_type"],
+        "properties": {
+          "contact_id": { "type": "string" },
+          "sequence_type": { "type": "string", "enum": ["cold", "warm", "re-engagement", "follow-up", "breakup"] },
+          "persona": { "type": "string" },
+          "touch_count": { "type": "integer", "default": 4 },
+          "tone": { "type": "string", "enum": ["formal", "peer-to-peer", "casual"], "default": "peer-to-peer" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "sequence_drafts": { "type": "array" },
+          "notion_url": { "type": "string" },
+          "slack_review_message_id": { "type": "string" }
+        }
+      },
+      "tags": ["outreach", "email", "linkedin", "sequences"]
+    },
+    {
+      "id": "competitive-intelligence",
+      "name": "Competitive Intelligence",
+      "description": "Monitors competitor mentions in transcripts and CRM. Generates differentiation matrices, battle card updates, and deal-specific competitive talk tracks.",
+      "trigger": "automatic",
+      "trigger_events": ["transcript.processed", "cron.weekly"],
+      "trigger_conditions": {
+        "competitor_mentioned": true
+      },
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "competitor_names": { "type": "array", "items": { "type": "string" } },
+          "deal_context": { "type": "string" },
+          "output_type": { "type": "string", "enum": ["alert", "battle-card", "full-report"], "default": "alert" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "competitors_detected": { "type": "array" },
+          "differentiation_points": { "type": "array" },
+          "battle_card_url": { "type": "string" },
+          "slack_alert_id": { "type": "string" }
+        }
+      },
+      "tags": ["competitive", "intelligence", "battle-cards"]
+    },
+    {
+      "id": "create-an-asset",
+      "name": "Create Asset",
+      "description": "Generates custom sales assets including proposal drafts, technical one-pagers, executive summaries, demo scripts, and onboarding briefs. Uses deal context from CRM and templates from Notion.",
+      "trigger": "automatic",
+      "trigger_events": ["crm.deal.stage_changed:proposal"],
+      "trigger_conditions": {
+        "meddic_score_gte": 60,
+        "call_summary_exists": true
+      },
+      "input_schema": {
+        "type": "object",
+        "required": ["asset_type", "crm_deal_id"],
+        "properties": {
+          "asset_type": { "type": "string", "enum": ["proposal", "one-pager", "executive-summary", "demo-script", "onboarding-brief", "technical-architecture"] },
+          "crm_deal_id": { "type": "string" },
+          "audience": { "type": "string" },
+          "custom_instructions": { "type": "string" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "notion_draft_url": { "type": "string" },
+          "slack_review_message_id": { "type": "string" },
+          "asset_type": { "type": "string" },
+          "word_count": { "type": "integer" }
+        }
+      },
+      "delegatable_to": ["technical-architecture-agent", "finance-agent", "legal-agent"],
+      "tags": ["proposal", "assets", "content"]
+    },
+    {
+      "id": "daily-briefing",
+      "name": "Daily Briefing",
+      "description": "Generates a personalized morning briefing for each AE. Covers today's meetings with pre-call brief links, top 3 deals needing action, at-risk pipeline, and one suggested prompt per priority deal.",
+      "trigger": "automatic",
+      "trigger_events": ["cron.daily"],
+      "schedule": "0 7 * * 1-5",
+      "input_schema": {
+        "type": "object",
+        "required": ["user_id"],
+        "properties": {
+          "user_id": { "type": "string" },
+          "delivery": { "type": "string", "enum": ["dm", "channel"], "default": "dm" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "slack_message_id": { "type": "string" },
+          "deals_flagged": { "type": "integer" },
+          "meetings_today": { "type": "integer" }
+        }
+      },
+      "tags": ["briefing", "daily", "pipeline"]
+    },
+    {
+      "id": "pipeline-review",
+      "name": "Pipeline Review",
+      "description": "Analyzes full team or individual pipeline for health issues: stalled deals, missing MEDDIC fields, slipped close dates, single-threaded relationships. Produces prioritized action plan.",
+      "trigger": "manual",
+      "slash_command": "/pipeline-review",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "scope": { "type": "string", "description": "AE name or 'team' for full team" },
+          "period": { "type": "string", "description": "Quarter or month, e.g. Q2-2026" },
+          "stale_threshold_days": { "type": "integer", "default": 14 }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "deals_reviewed": { "type": "integer" },
+          "deals_at_risk": { "type": "integer" },
+          "deals_urgent": { "type": "integer" },
+          "slack_report_id": { "type": "string" },
+          "notion_report_url": { "type": "string" }
+        }
+      },
+      "tags": ["pipeline", "review", "management"]
+    },
+    {
+      "id": "forecast",
+      "name": "Sales Forecast",
+      "description": "Generates weighted sales forecasts with best/likely/worst scenarios. Accepts pipeline data, quota, and weighting configuration. Flags deals where AI confidence differs significantly from AE-stated probability.",
+      "trigger": "manual",
+      "slash_command": "/forecast",
+      "input_schema": {
+        "type": "object",
+        "required": ["period"],
+        "properties": {
+          "period": { "type": "string", "description": "Forecast period, e.g. Q2-2026" },
+          "scope": { "type": "string", "description": "AE name or 'team'" },
+          "weighting": {
+            "type": "object",
+            "properties": {
+              "commit": { "type": "number", "default": 0.9 },
+              "best_case": { "type": "number", "default": 0.5 },
+              "pipeline": { "type": "number", "default": 0.2 }
+            }
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "weighted_total": { "type": "number" },
+          "best_case": { "type": "number" },
+          "worst_case": { "type": "number" },
+          "gap_to_quota": { "type": "number" },
+          "slack_report_id": { "type": "string" }
+        }
+      },
+      "tags": ["forecast", "revenue", "management"]
+    }
+  ],
+  "mcp_integrations": [
+    { "id": "hubspot", "category": "crm", "required": false },
+    { "id": "salesforce", "category": "crm", "required": false },
+    { "id": "fireflies", "category": "transcripts", "required": false },
+    { "id": "gong", "category": "transcripts", "required": false },
+    { "id": "clay", "category": "enrichment", "required": false },
+    { "id": "zoominfo", "category": "enrichment", "required": false },
+    { "id": "gmail", "category": "email", "required": false },
+    { "id": "google-calendar", "category": "calendar", "required": false },
+    { "id": "slack", "category": "chat", "required": true },
+    { "id": "notion", "category": "knowledge-base", "required": true }
+  ],
+  "a2a": {
+    "protocol_version": "1.0",
+    "discovery_endpoint": "https://agents.your-company.com/.well-known/agent-cards",
+    "known_agents": [
+      "legal-agent",
+      "pricing-agent",
+      "technical-architecture-agent",
+      "customer-success-agent",
+      "finance-agent"
+    ],
+    "delegation_policy": {
+      "max_concurrent_delegations": 3,
+      "timeout_seconds": 120,
+      "fallback": "notify_human"
+    }
+  }
+}

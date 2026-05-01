@@ -1,0 +1,149 @@
+{
+  "schema_version": "1.0",
+  "agent": {
+    "id": "technical-architecture-agent",
+    "name": "Technical Architecture Agent",
+    "description": "Designs solution architectures, validates technical requirements, estimates implementation effort, and generates technical proposal sections. Deep expertise in cloud infrastructure, DevOps, data platforms, and security.",
+    "version": "1.0.0",
+    "url": "https://agents.your-company.com/technical-architecture",
+    "model": "claude-opus-4-7",
+    "authentication": {
+      "schemes": ["bearer"],
+      "token_endpoint": "https://auth.your-company.com/token"
+    },
+    "capabilities": {
+      "streaming": true,
+      "push_notifications": false,
+      "state_transition_history": true,
+      "multi_turn": true
+    }
+  },
+  "skills": [
+    {
+      "id": "architecture-design",
+      "name": "Architecture Design",
+      "description": "Designs a target architecture based on customer requirements and constraints. Produces architecture overview, component breakdown, data flow description, and migration strategy.",
+      "input_schema": {
+        "type": "object",
+        "required": ["requirements_summary"],
+        "properties": {
+          "requirements_summary": { "type": "string" },
+          "current_stack": { "type": "string" },
+          "target_platform": { "type": "string", "enum": ["aws", "gcp", "azure", "multi-cloud", "hybrid"] },
+          "compliance_requirements": { "type": "array", "items": { "type": "string" } },
+          "scale_requirements": {
+            "type": "object",
+            "properties": {
+              "concurrent_users": { "type": "integer" },
+              "requests_per_second": { "type": "integer" },
+              "data_volume_tb": { "type": "number" }
+            }
+          },
+          "budget_constraint": { "type": "number" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "architecture_summary": { "type": "string" },
+          "components": { "type": "array" },
+          "migration_phases": { "type": "array" },
+          "tech_stack_recommendation": { "type": "array" },
+          "architecture_doc_url": { "type": "string" },
+          "risks": { "type": "array" }
+        }
+      },
+      "tags": ["architecture", "design", "cloud", "technical"]
+    },
+    {
+      "id": "effort-estimation",
+      "name": "Effort Estimation",
+      "description": "Estimates implementation effort (engineer-weeks, phases, timeline) for a proposed solution based on scope and customer environment.",
+      "input_schema": {
+        "type": "object",
+        "required": ["scope_summary"],
+        "properties": {
+          "scope_summary": { "type": "string" },
+          "customer_environment": { "type": "string" },
+          "complexity": { "type": "string", "enum": ["low", "medium", "high", "very-high"] },
+          "customer_team_involvement": { "type": "string", "enum": ["minimal", "moderate", "high"] }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "total_engineer_weeks": { "type": "number" },
+          "timeline_weeks": { "type": "number" },
+          "phases": { "type": "array" },
+          "assumptions": { "type": "array" },
+          "risk_factors": { "type": "array" },
+          "confidence": { "type": "string", "enum": ["rough-order-of-magnitude", "budgetary", "definitive"] }
+        }
+      },
+      "tags": ["estimation", "effort", "scoping", "technical"]
+    },
+    {
+      "id": "technical-risk-assessment",
+      "name": "Technical Risk Assessment",
+      "description": "Identifies technical risks in a proposed engagement and provides mitigation strategies.",
+      "input_schema": {
+        "type": "object",
+        "required": ["scope_summary", "customer_environment"],
+        "properties": {
+          "scope_summary": { "type": "string" },
+          "customer_environment": { "type": "string" },
+          "known_constraints": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "risks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "risk": { "type": "string" },
+                "likelihood": { "type": "string", "enum": ["high", "medium", "low"] },
+                "impact": { "type": "string", "enum": ["high", "medium", "low"] },
+                "mitigation": { "type": "string" }
+              }
+            }
+          },
+          "overall_risk_level": { "type": "string", "enum": ["low", "medium", "high", "critical"] }
+        }
+      },
+      "tags": ["risk", "technical", "assessment"]
+    },
+    {
+      "id": "tech-stack-validation",
+      "name": "Tech Stack Validation",
+      "description": "Validates that a proposed technology stack meets customer requirements and integrates with their existing environment.",
+      "input_schema": {
+        "type": "object",
+        "required": ["proposed_stack", "customer_existing_stack"],
+        "properties": {
+          "proposed_stack": { "type": "array", "items": { "type": "string" } },
+          "customer_existing_stack": { "type": "array", "items": { "type": "string" } },
+          "integration_requirements": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "compatibility_issues": { "type": "array" },
+          "integration_complexity": { "type": "string", "enum": ["low", "medium", "high"] },
+          "recommended_alternatives": { "type": "array" },
+          "validation_summary": { "type": "string" }
+        }
+      },
+      "tags": ["validation", "tech-stack", "integration"]
+    }
+  ],
+  "invocation_contexts": [
+    "When account-research identifies a complex technical environment requiring architecture assessment",
+    "When create-an-asset needs a technical architecture section for a proposal",
+    "When call-prep needs a technical discovery brief for a solutions engineer",
+    "When a prospect requests an architecture review or proof of concept plan"
+  ]
+}

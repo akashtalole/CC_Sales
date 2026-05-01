@@ -1,0 +1,119 @@
+{
+  "schema_version": "1.0",
+  "agent": {
+    "id": "finance-agent",
+    "name": "Finance & Business Case Agent",
+    "description": "Builds customer-facing business cases and ROI models. Validates deal financials, constructs payback period calculations, and generates board-ready investment justifications. Works in conjunction with the pricing agent for deal economics.",
+    "version": "1.0.0",
+    "url": "https://agents.your-company.com/finance",
+    "model": "claude-sonnet-4-6",
+    "authentication": {
+      "schemes": ["bearer"],
+      "token_endpoint": "https://auth.your-company.com/token"
+    },
+    "capabilities": {
+      "streaming": false,
+      "push_notifications": false,
+      "state_transition_history": false,
+      "multi_turn": true
+    }
+  },
+  "skills": [
+    {
+      "id": "business-case",
+      "name": "Business Case Generator",
+      "description": "Builds a structured business case document including current state cost analysis, future state projections, ROI calculation, payback period, and risk-adjusted scenarios.",
+      "input_schema": {
+        "type": "object",
+        "required": ["crm_deal_id", "investment_amount"],
+        "properties": {
+          "crm_deal_id": { "type": "string" },
+          "investment_amount": { "type": "number" },
+          "customer_metrics": {
+            "type": "object",
+            "description": "Quantitative metrics from discovery call",
+            "properties": {
+              "current_annual_cost": { "type": "number" },
+              "engineer_hours_per_week": { "type": "number" },
+              "avg_engineer_fully_loaded_cost": { "type": "number" },
+              "incident_frequency_per_month": { "type": "integer" },
+              "avg_incident_cost": { "type": "number" },
+              "deployment_frequency_per_week": { "type": "number" },
+              "lead_time_days": { "type": "number" }
+            }
+          },
+          "expected_improvements": {
+            "type": "object",
+            "properties": {
+              "cost_reduction_pct": { "type": "number" },
+              "time_savings_pct": { "type": "number" },
+              "incident_reduction_pct": { "type": "number" }
+            }
+          },
+          "audience": { "type": "string", "enum": ["cfo", "cto", "ceo", "board", "vp"], "default": "cfo" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "roi_pct": { "type": "number" },
+          "payback_months": { "type": "number" },
+          "year_1_value": { "type": "number" },
+          "year_3_value": { "type": "number" },
+          "npv": { "type": "number" },
+          "scenarios": {
+            "type": "object",
+            "properties": {
+              "conservative": { "type": "object" },
+              "base": { "type": "object" },
+              "optimistic": { "type": "object" }
+            }
+          },
+          "business_case_url": { "type": "string" },
+          "executive_summary": { "type": "string" }
+        }
+      },
+      "tags": ["roi", "business-case", "finance", "cfo"]
+    },
+    {
+      "id": "tco-analysis",
+      "name": "Total Cost of Ownership Analysis",
+      "description": "Compares TCO of customer's current state vs. proposed solution over 1, 3, and 5 years. Includes direct costs, opportunity costs, and risk-adjusted costs.",
+      "input_schema": {
+        "type": "object",
+        "required": ["current_state_costs", "proposed_solution_cost"],
+        "properties": {
+          "current_state_costs": {
+            "type": "object",
+            "properties": {
+              "infrastructure_annual": { "type": "number" },
+              "engineering_annual": { "type": "number" },
+              "licensing_annual": { "type": "number" },
+              "incident_costs_annual": { "type": "number" }
+            }
+          },
+          "proposed_solution_cost": { "type": "number" },
+          "implementation_cost": { "type": "number" },
+          "analysis_years": { "type": "integer", "default": 3 }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "current_state_tco": { "type": "number" },
+          "proposed_state_tco": { "type": "number" },
+          "savings": { "type": "number" },
+          "breakeven_months": { "type": "number" },
+          "tco_comparison_url": { "type": "string" }
+        }
+      },
+      "tags": ["tco", "cost-analysis", "finance"]
+    }
+  ],
+  "invocation_contexts": [
+    "When a prospect or economic buyer requests ROI justification or a business case",
+    "When /call-summary detects 'business case', 'ROI', 'payback', or 'CFO approval' in a transcript",
+    "When create-an-asset generates a proposal and needs an Investment Summary with ROI data",
+    "When pricing-agent generates a quote and customer needs financial justification to compare options"
+  ]
+}

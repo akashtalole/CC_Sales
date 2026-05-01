@@ -1,0 +1,131 @@
+{
+  "schema_version": "1.0",
+  "agent": {
+    "id": "pricing-agent",
+    "name": "Pricing & Deal Desk Agent",
+    "description": "Provides dynamic pricing guidance, discount approval workflows, deal structuring recommendations, and ROI calculations. Enforces pricing guardrails and escalates non-standard requests.",
+    "version": "1.0.0",
+    "url": "https://agents.your-company.com/pricing",
+    "model": "claude-sonnet-4-6",
+    "authentication": {
+      "schemes": ["bearer"],
+      "token_endpoint": "https://auth.your-company.com/token"
+    },
+    "capabilities": {
+      "streaming": false,
+      "push_notifications": true,
+      "state_transition_history": true,
+      "multi_turn": false
+    }
+  },
+  "skills": [
+    {
+      "id": "pricing-quote",
+      "name": "Pricing Quote",
+      "description": "Generates a pricing quote for a specific deal based on scope, customer profile, and current pricing tiers. Returns 3 options (Essentials / Standard / Premium) with unit economics.",
+      "input_schema": {
+        "type": "object",
+        "required": ["service_type", "scope_summary"],
+        "properties": {
+          "service_type": { "type": "string", "description": "Type of service or product being quoted" },
+          "scope_summary": { "type": "string", "description": "Deal scope description from discovery" },
+          "deal_size_estimate": { "type": "number" },
+          "customer_segment": { "type": "string", "enum": ["smb", "mid-market", "enterprise"] },
+          "contract_term_months": { "type": "integer", "default": 12 },
+          "crm_deal_id": { "type": "string" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "tier": { "type": "string" },
+                "scope": { "type": "string" },
+                "list_price": { "type": "number" },
+                "recommended_price": { "type": "number" },
+                "margin_pct": { "type": "number" },
+                "discount_applied": { "type": "number" }
+              }
+            }
+          },
+          "recommended_tier": { "type": "string" },
+          "rationale": { "type": "string" }
+        }
+      },
+      "tags": ["pricing", "quote", "deal-desk"]
+    },
+    {
+      "id": "discount-approval",
+      "name": "Discount Approval",
+      "description": "Evaluates a discount request against guardrails. Approves automatically within threshold, escalates to human deal desk for exceptions. Returns approval status, approved discount, and conditions.",
+      "input_schema": {
+        "type": "object",
+        "required": ["requested_discount_pct", "list_price", "crm_deal_id"],
+        "properties": {
+          "requested_discount_pct": { "type": "number" },
+          "list_price": { "type": "number" },
+          "crm_deal_id": { "type": "string" },
+          "justification": { "type": "string" },
+          "competitive_pressure": { "type": "boolean", "default": false },
+          "strategic_account": { "type": "boolean", "default": false }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "enum": ["approved", "conditional", "escalated", "rejected"] },
+          "approved_discount_pct": { "type": "number" },
+          "conditions": { "type": "array", "items": { "type": "string" } },
+          "escalation_reason": { "type": "string" },
+          "approver": { "type": "string" },
+          "valid_through": { "type": "string", "format": "date" }
+        }
+      },
+      "tags": ["discount", "approval", "deal-desk"]
+    },
+    {
+      "id": "roi-calculator",
+      "name": "ROI Calculator",
+      "description": "Builds a customer-facing ROI model based on deal parameters and customer-stated metrics from discovery. Outputs a business case document.",
+      "input_schema": {
+        "type": "object",
+        "required": ["crm_deal_id"],
+        "properties": {
+          "crm_deal_id": { "type": "string" },
+          "customer_metrics": {
+            "type": "object",
+            "description": "Metrics provided by customer during discovery",
+            "properties": {
+              "current_cost": { "type": "number" },
+              "current_time_hours_per_week": { "type": "number" },
+              "headcount": { "type": "integer" },
+              "error_rate_pct": { "type": "number" }
+            }
+          },
+          "investment_amount": { "type": "number" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "roi_pct": { "type": "number" },
+          "payback_months": { "type": "number" },
+          "annual_value": { "type": "number" },
+          "3_year_value": { "type": "number" },
+          "business_case_url": { "type": "string" }
+        }
+      },
+      "tags": ["roi", "business-case", "finance"]
+    }
+  ],
+  "invocation_contexts": [
+    "When create-an-asset needs pricing for the Investment Summary section of a proposal",
+    "When an AE requests a discount and the /call-summary shows pricing pushback",
+    "When a deal moves to Proposal stage and pricing options are needed",
+    "When a prospect asks for a business case or ROI justification"
+  ]
+}
